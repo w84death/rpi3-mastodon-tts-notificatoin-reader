@@ -1,2 +1,4 @@
-config.ini
+env.sh
 mastodon-tts.service
+last_notification_id.txt
+main
