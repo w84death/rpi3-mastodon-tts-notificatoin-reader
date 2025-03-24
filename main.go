@@ -135,14 +135,14 @@ func main() {
                 continue // Skip unsupported types
             }
 
-            // Speak the notification using espeak
             if speech != "" {
-                cmd := exec.Command("espeak-ng", speech)
-                err := cmd.Run()
-                if err != nil {
-                    log.Printf("Failed to speak notification: %v", err)
-                }
-            }
+				// Use a shell command to pipe the speech text through Piper and aplay
+				cmd := exec.Command("sh", "-c", fmt.Sprintf("echo %q | piper --model en_US-danny-low.onnx --output-raw | aplay -r 16000 -f S16_LE -t raw -", speech))
+				err := cmd.Run()
+				if err != nil {
+				log.Printf("Failed to speak notification: %v", err)
+				}
+			}
         }
 
         // Update the last notification ID to the newest one

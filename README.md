@@ -10,3 +10,5 @@ A headless notification system that reads Mastodon mentions through -to-Speech. 
 - Stable internet connection
 
 ## Software Requirements
+
+$ echo 'Welcome to the world of speech synthesis!' | piper --model en_US-danny-low.onnx --output-raw | aplay -r 16000 -f S16_LE -t raw -
