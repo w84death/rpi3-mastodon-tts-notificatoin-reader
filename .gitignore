@@ -2,3 +2,5 @@ env.sh
 mastodon-tts.service
 last_notification_id.txt
 main
+*.onnx
+*.onnx.json
