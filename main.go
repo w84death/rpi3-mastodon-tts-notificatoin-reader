@@ -117,6 +117,8 @@ func main() {
                 name = notif.Account.Username
             }
 
+            log.Printf("Processing notification: ID=%s, Type=%s, Account=%s", notif.ID, notif.Type, name)
+
             // Construct speech based on notification type
             var speech string
             switch notif.Type {
@@ -136,13 +138,18 @@ func main() {
             }
 
             if speech != "" {
-				// Use a shell command to pipe the speech text through Piper and aplay
-				cmd := exec.Command("sh", "-c", fmt.Sprintf("echo %q | piper --model en_US-danny-low.onnx --output-raw | aplay -r 16000 -f S16_LE -t raw -", speech))
-				err := cmd.Run()
-				if err != nil {
-				log.Printf("Failed to speak notification: %v", err)
-				}
-			}
+                log.Printf("Generated speech: %s", speech)
+                // Use a shell command to pipe the speech text through Piper and aplay
+                cmd := exec.Command("sh", "-c", fmt.Sprintf("echo %q | piper --model en_US-danny-low.onnx --output-raw | aplay -r 16000 -f S16_LE -t raw -", speech))
+                err := cmd.Run()
+                if err != nil {
+                    log.Printf("Failed to speak notification: %v", err)
+                } else {
+                    log.Printf("Successfully spoke notification")
+                }
+            } else {
+                log.Printf("No speech generated for notification ID=%s", notif.ID)
+            }
         }
 
         // Update the last notification ID to the newest one

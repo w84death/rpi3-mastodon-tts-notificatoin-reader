@@ -34,8 +34,20 @@ This application connects to your Mastodon account, monitors for new notificatio
 ### 2. Install Dependencies
 
 ```bash
-# Install Go
-sudo apt install golang-go
+# Install a compatible version of Go (e.g., 1.20.x)
+wget https://go.dev/dl/go1.20.8.linux-armv6l.tar.gz
+sudo tar -C /usr/local -xzf go1.20.8.linux-armv6l.tar.gz
+echo "export PATH=$PATH:/usr/local/go/bin" >> ~/.bashrc
+source ~/.bashrc
+
+# Verify Go installation
+go version
+
+# Set up Go environment
+mkdir -p ~/go/{bin,src,pkg}
+echo "export GOPATH=$HOME/go" >> ~/.bashrc
+echo "export PATH=$PATH:$GOPATH/bin" >> ~/.bashrc
+source ~/.bashrc
 
 # Install audio dependencies
 sudo apt install alsa-utils
