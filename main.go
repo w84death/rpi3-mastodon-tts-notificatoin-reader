@@ -140,7 +140,7 @@ func main() {
             if speech != "" {
                 log.Printf("Generated speech: %s", speech)
                 // Use a shell command to pipe the speech text through Piper and aplay
-                cmd := exec.Command("sh", "-c", fmt.Sprintf("echo %q | piper --model en_US-danny-low.onnx --output-raw | aplay -r 16000 -f S16_LE -t raw -", speech))
+                cmd := exec.Command("sh", "-c", fmt.Sprintf("echo %q | piper --model ~/piper-voices/en_US-danny-low.onnx --output-raw | aplay -r 16000 -f S16_LE -t raw -", speech))
                 err := cmd.Run()
                 if err != nil {
                     log.Printf("Failed to speak notification: %v", err)
