@@ -1,10 +1,108 @@
-# Mastodon TTS Notifier for Raspberry Pi 3
+# Mastodon TTS Notification Reader
 
-A headless notification system that reads Mastodon notifications through Text-to-Speech. Runs on Raspberry Pi 3 with local AI voice synthesis using Piper.
+Reads Mastodon notifications via the API and uses Piper TTS + aplay to speak them aloud. Designed for Raspberry Pi or similar Linux systems.
 
-## Overview
+## Prerequisites
 
-This application connects to your Mastodon account, monitors for new notifications (mentions, favorites, boosts, and follows), and reads them aloud using Piper TTS.
+*   Go compiler (for building)
+*   Piper TTS (installed and model downloaded, e.g., `~/piper-voices/en_US-danny-low.onnx`)
+*   `aplay` utility (usually part of `alsa-utils`)
+*   `sh` (shell)
+*   `dd` (usually part of `coreutils`)
+
+## Setup
+
+1.  **Clone the repository:**
+    ```bash
+    git clone <repository-url>
+    cd rpi3-mastodon-tts-notificatoin-reader
+    ```
+2.  **Build the application:**
+    ```bash
+    go build -o mastodon-tts-reader main.go
+    ```
+3.  **Set Environment Variables:**
+    You need to provide your Mastodon instance URL and an access token with `read:notifications` scope. Create an access token in your Mastodon settings (Preferences -> Development -> New Application).
+
+    Export the variables in your shell session or add them to your shell profile (e.g., `~/.bashrc` or `~/.profile`):
+    ```bash
+    export MASTODON_INSTANCE_URL="https://your.mastodon.instance"
+    export MASTODON_ACCESS_TOKEN="YourAccessTokenHere"
+    # Optional: Adjust the path to your Piper model if it's not the default
+    # export PIPER_MODEL_PATH="/path/to/your/model.onnx"
+    ```
+    *Note: The current code hardcodes the model path `~/piper-voices/en_US-danny-low.onnx`. You might need to adjust the code or use the environment variable approach if you modify the Go program to read it.*
+
+## Running the Application
+
+You can run the application directly or set it up to run periodically using cron.
+
+### Direct Execution
+
+Ensure the environment variables are set, then run:
+
+```bash
+./mastodon-tts-reader
+```
+
+The application will fetch new notifications since the last run (tracked in `last_notification_id.txt`), speak them, and update the file.
+
+### Running with Cron (Alternative)
+
+To run the script periodically (e.g., checking for notifications every 5 minutes), you can use `cron`.
+
+1.  **Create a wrapper script (Optional but recommended):**
+    Create a script, for example, `/home/pi/run_mastodon_tts.sh`, to set environment variables and run the reader. Make it executable (`chmod +x`).
+
+    ```bash
+    #!/bin/bash
+    # /home/pi/run_mastodon_tts.sh
+
+    # Set the directory where the executable and last ID file are located
+    cd /path/to/rpi3-mastodon-tts-notificatoin-reader || exit 1
+
+    # Export necessary variables
+    export MASTODON_INSTANCE_URL="https://your.mastodon.instance"
+    export MASTODON_ACCESS_TOKEN="YourAccessTokenHere"
+    # export PIPER_MODEL_PATH="/path/to/your/model.onnx" # If needed
+
+    # Run the reader
+    ./mastodon-tts-reader
+    ```
+    *Remember to replace placeholder paths and credentials.*
+
+2.  **Edit your crontab:**
+    Open the crontab editor:
+    ```bash
+    crontab -e
+    ```
+
+3.  **Add a cron job:**
+    Add a line similar to the following, adjusting the schedule and paths as needed. This example runs the wrapper script every 5 minutes and logs output.
+
+    ```crontab
+    */5 * * * * /home/pi/run_mastodon_tts.sh >> /home/pi/mastodon_tts.log 2>&1
+    ```
+
+    Or, if you prefer the user's original example (runs once daily at 00:05), ensure the environment variables are somehow available to the `cron` job (e.g., defined within the crontab itself or sourced by the script):
+
+    ```crontab
+    # Example: Runs daily at 12:05 AM
+    5 0 * * * /path/to/rpi3-mastodon-tts-notificatoin-reader/mastodon-tts-reader >> /home/pi/notifications.log 2>&1
+    ```
+    *Note: Running directly from cron without a wrapper script requires ensuring the `MASTODON_INSTANCE_URL` and `MASTODON_ACCESS_TOKEN` environment variables are defined within the crontab file before the command, or that the Go program is modified to read them from a config file.*
+    *Also ensure the working directory is correct so `last_notification_id.txt` is found/saved in the right place, or use absolute paths in the Go code.*
+
+## How it Works
+
+*   Fetches notifications from the Mastodon API using the provided credentials.
+*   Uses `since_id` parameter to only fetch notifications newer than the last processed one (ID stored in `last_notification_id.txt`).
+*   Extracts text content from HTML in notifications.
+*   Constructs a sentence based on the notification type (mention, favourite, reblog, follow).
+*   Pipes the text to `piper` for Text-to-Speech synthesis.
+*   Prepends a short silence using `dd` to avoid audio cutoff.
+*   Pipes the raw audio data to `aplay` for playback.
+*   Updates `last_notification_id.txt` with the ID of the newest notification processed.
 
 ## Hardware Requirements
 - Raspberry Pi 3 (1GB RAM recommended)
@@ -56,9 +154,14 @@ sudo apt install alsa-utils
 sudo apt install git
 
 # Install Piper TTS
-sudo apt install python3-pip
-pip3 install piper-tts
+Download the latest piper release for ARM64. Says Pi4 but works fine on Pi3.
+
 ```
+wget https://github.com/rhasspy/piper/releases/download/v1.2.0/piper_arm64.tar.gz
+tar -zxv piper_arm64.tar.gz
+```
+
+Add ~/piper/ to the PATH.
 
 ### 3. Download Voice Model
 
@@ -136,7 +239,7 @@ Environment=MASTODON_INSTANCE_URL=https://your-instance.social
 Environment=MASTODON_ACCESS_TOKEN=your-access-token
 User=pi
 Restart=always
-RestartSec=10
+RestartSec=300
 
 [Install]
 WantedBy=multi-user.target
